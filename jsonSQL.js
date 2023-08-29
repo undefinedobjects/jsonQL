@@ -1,41 +1,52 @@
 function jsonQL(jsonObject, stringPath) {
+    const lexerType = {
+        INDEX: {
+            name: 'index',
+            regex: /\[[0-9]+\]/
+        },
+        REGEX: {
+            name: 'regex',
+            regex: /\<.*\>/
+        },
+        KEY: {
+            name: 'key',
+            regex: null
+        }
+    };
+
     function lexer(stringProperties) {
-        let splittedProperties = stringProperties.split(/\.(?![^\(].*\))(?![^\<].*\>)/g);
+        let splittedProperties = stringProperties.split(/\.(?![^\(]*\))(?![^<]*>)/g);
 
         let lexers = [];
         for (const property of splittedProperties) {
-            if(/\[[0-9]+\]/.test(property)) {
-                const index = parseInt(property.replace(/[\[\]]/g, ''), 10);
-                lexers.push({
-                    type: 'index',
-                    value: index
-                });
-            } else if(/\<.*\>/.test(property)) {
-                const regex = property.substring(1, property.length - 1);
-                lexers.push({
-                    type: 'regex',
-                    value: new RegExp(regex, 'g')
-                });
-            } else if(/\(.*\)/.test(property)) {
-                const index = property.indexOf('(');
-                let thisKey = property.substring(0,  index);
-                thisKey = property.substring(thisKey.lastIndexOf('.') + 1, index);
-                const func =  property.substring(index + 1, property.length - 1);
+            let lexerObject = {};
 
-                lexers.push({
-                    type: 'function',
-                    value: {
-                        this: thisKey,
-                        function: func
-                    }
-                });
+            if(lexerType.INDEX.regex.test(property)) {
+                const index = parseInt(property.replace(/[\[\]]/g, ''), 10);
+
+                lexerObject = {
+                    type: lexerType.INDEX.name,
+                    value: index
+                };
+            } else if(lexerType.REGEX.regex.test(property)) {
+                const regex = property.substring(1, property.length - 1);
+
+                lexerObject = {
+                    type: lexerType.REGEX.name,
+                    value: new RegExp(regex, 'g')
+                };
             } else {
-                lexers.push({
-                    type: 'key',
+                lexerObject = {
+                    type: lexerType.KEY.name,
                     value: property
-                });
+                };
             }
+
+            //TODO: function
+
+            lexers.push(lexerObject);
         }
+
         return lexers;
     }
 
@@ -46,14 +57,12 @@ function jsonQL(jsonObject, stringPath) {
 
         let value = jsonObject;
         for (const lexer of lexerObject) {
-            if(lexer.type === 'index') {
+            if(lexer.type === lexerType.INDEX.name) {
                 const getKey = Object.keys(value)[lexer.value];
                 value = value[getKey];
-            } else if(lexer.type === 'regex') {
+            } else if(lexer.type === lexerType.REGEX.name) {
                 const getKeys = Object.keys(value).filter(key => new RegExp(lexer.value).test(key));
                 value = getKeys.map(key => value[key]);
-            } else if(lexer.type === 'function') {
-               //TODO: add function filter
             } else {
                 if(Array.isArray(value)) {
                     value = value.filter(key => key[lexer.value]);
@@ -69,9 +78,9 @@ function jsonQL(jsonObject, stringPath) {
     return parser(jsonObject, lexer(stringPath));
 }
 
-let obj = {say: { message: 'hello' }, say2: { message: 'hello' }};
-//TODO:
-//let getObj = jsonQL(obj, 'say.message(this.length > 10)');
+let obj = {say: { message: 'hello' }, say2: { message: 'hello2' }};
+
 let getObj1 = jsonQL(obj, 'say.message');
 let getObj2 = jsonQL(obj, '<say.*>.message');
-console.log(getObj1, getObj2);
+let getObj3 = jsonQL(obj, '<say.*>.[1].message');
+console.log(getObj1, ...getObj2, getObj3);
