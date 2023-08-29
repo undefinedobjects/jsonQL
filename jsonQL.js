@@ -1,4 +1,4 @@
-function jsonQL(jsonObject, stringPath) {
+                           function jsonQL(jsonObject, stringPath) {
     const lexerType = {
         INDEX: {
             name: 'index',
@@ -42,7 +42,13 @@ function jsonQL(jsonObject, stringPath) {
                 };
             }
 
-            //TODO: function
+            let detectFuntion = property.split(/([^()]+)(\(.+?\))/g).filter(item => item !== '')
+
+            if(detectFuntion.length > 1) {
+                lexerObject.function = Function(`return this !== globalThis && ${detectFuntion.slice(1).join('')}`);
+            } else {
+                lexerObject.function = null;
+            }
 
             lexers.push(lexerObject);
         }
@@ -70,6 +76,10 @@ function jsonQL(jsonObject, stringPath) {
                     value = value[lexer.value];
                 }
             }
+
+            if(lexer.function != null) {
+                lexer.function.call(value);
+            }
         }
 
         return value;
@@ -82,5 +92,9 @@ let obj = {say: { message: 'hello' }, say2: { message: 'hello2' }};
 
 let getObj1 = jsonQL(obj, 'say.message');
 let getObj2 = jsonQL(obj, '<say.*>.message');
-let getObj3 = jsonQL(obj, '<say.*>.[1].message');
-console.log(getObj1, ...getObj2, getObj3);
+let getObj3 = jsonQL(obj, '<say.*>.[1](this.message.length > 10)');
+let getObj4 = jsonQL(obj, '<say.*>.[1](this.message.length < 4)');
+let getObj5 = jsonQL(obj, '<say.*>.[0].message()');
+let getObj6 = jsonQL(obj, '<say.*>.[0].message');
+let getObj7 = jsonQL(obj, '<say.*>.[0].message()');
+console.log(getObj1, ...getObj2, getObj3, getObj4, getObj5, getObj6, getObj7);
