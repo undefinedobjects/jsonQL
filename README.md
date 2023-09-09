@@ -25,6 +25,17 @@ console.log(jsonQL(obj, '<say.*>.[0].[0].(this)'));
 console.log(jsonQL(obj, '<say.*>.[0].message(this)'));
 console.log(jsonQL(obj, '<say.*>.[0].message'));
 console.log(jsonQL(obj, '<say.*>.[0].message()'));
+/*
+outputs:
+hello
+{message: 'hello'} {message: 'hello2'}
+{message: 'hello2'}
+true
+hello
+undefined
+false
+hello
+undefined*/
 ```
 
 This code queries your JSON data in various ways and prints the results to the console. To share this code on GitHub, create a JavaScript file, add this code to your file, and upload it to your GitHub repository. Then, you can share the repository URL for others to view.
